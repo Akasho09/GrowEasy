@@ -5,20 +5,29 @@ import Image from "next/image";
 
 export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
   const slides = ["", "/image2.png", "/image1.png", "/image.png", ""];
   const gap = 20;
   const slength = slides.length;
 
-  useEffect(() => {
-    if (currentIndex < slength - 1) {
-      const interval = setInterval(() => {
-        setCurrentIndex((prev) => prev + 1);
-      }, 3500);
-      return () => clearInterval(interval);
-    }
-  }, [currentIndex, slength]);
+  const togglePlayPause = () => {
+    setIsPlaying((prev) => !prev);
+  };
 
   useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    if (currentIndex < slength - 1 && isPlaying) {
+      interval = setInterval(() => {
+        setCurrentIndex((prev) => {
+          if (prev < slength - 1) {
+            return prev + 1;
+          }
+          clearInterval(interval);
+          return prev;
+        });
+      }, 3000);
+    }
+  
     gsap.to(".slide", {
       x: (i) => `${(i - currentIndex) * (100 + gap)}%`,
       opacity: (i) => (i === currentIndex ? 1 : 0.5),
@@ -26,21 +35,27 @@ export default function Home() {
       duration: 2.2,
       ease: "power2.inOut",
     });
-
-    gsap.fromTo(
-      ".barr",
-      { backgroundColor: "gray" },
-      {
-        backgroundColor: (i) => (i === currentIndex - 1 ? "black" : "gray"),
-        duration: 2.2,
-        ease: "power2.Out",
+    gsap.to(".barr", {
+      backgroundColor: (i) => (i === currentIndex - 1 ? "black" : "gray"),
+      duration: 2.2,
+      ease: "power2.Out",
+    });
+    return () => {
+      if (interval) {
+        clearInterval(interval);
       }
-    );
-  }, [currentIndex]);
+    };
+  }, [currentIndex, slength , isPlaying]);
 
   return (
     <div className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden px-4 md:px-8">
-      <div className="flex w-full h-2/3 justify-center items-center max-w-screen-lg mx-auto">
+     <button
+        onClick={togglePlayPause}
+        className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-4 py-2 rounded-full z-50 hover:bg-opacity-75 transition-all"
+      >
+        {isPlaying ? "Pause" : "Play"}
+      </button>
+       <div className="flex w-full h-2/3 justify-center items-center max-w-screen-lg mx-auto">
         {slides.map((src, i) => (
           <div
             key={i}
@@ -71,9 +86,8 @@ export default function Home() {
 
       {currentIndex < slength - 1 && slength > 2 && (
         <div
-          className={`absolute bottom-10 flex gap-4 transition-opacity duration-500 ${
-            currentIndex === slength - 1 ? "opacity-0" : "opacity-100"
-          }`}
+          className={`absolute bottom-10 flex gap-4 transition-opacity duration-500 ${currentIndex === slength - 1 ? "opacity-0" : "opacity-100"
+            }`}
         >
           {[...Array(slength - 2)].map((_, i) => (
             <div
